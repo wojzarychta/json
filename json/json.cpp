@@ -17,6 +17,14 @@ bool isWS(char ch);
 bool isMember(string s);
 bool isObject(string s);
 bool isArray(string s);
+
+bool readJSON(string s);
+int readValue(string s, int i = 0);
+int readString(string s, int i = 0);
+int readNum(string s, int i = 0);
+int readArray(string s, int i = 0);
+int readMember(string s, int i = 0);
+int readObject(string s, int i = 0);
 //------------------------------------------
 
 int main()
@@ -57,9 +65,11 @@ void menu(fstream& fs)
         }
               break;
         case 'c': {
-            cout << isArray("[  \t]");
-            //cout << isValue(" ");
-            //cout << validate(fs) << endl;
+            bool isValid = validate(fs);
+            if (isValid)
+                cout << "* Plik jest prawidlowy *" << endl << endl;
+            else
+                cout << "* Plik jest bledny *" << endl << endl;
             system("pause");
         }
               break;
@@ -104,9 +114,10 @@ bool validate(fstream& fs) {
     fs.seekg(0);
     fs.read(&json[0], size);
 
-    return isValue(json);
+    return readJSON(json);
 }
 
+/*
 bool isString(string s) {
     int size = s.length();
     if (size < 2) {
@@ -283,7 +294,260 @@ bool isValue(string s) {
     string t = s.substr(i, j-i);
     return isString(t) || isNum(t) || t == "true" || t == "false" || t == "null" || isArray(t) || isObject(t);
 }
+*/
+
 
 bool isWS(char ch) {
     return ch == '\x20' || ch == '\x09' || ch == '\x0A' || ch == '\x0D';
 }
+
+bool readJSON(string s) {
+    int size = s.length();
+    int j = size - 1;
+    int i = readValue(s);
+    return i == j;
+}
+
+int readString(string s, int i) {
+    
+    // s[i] == '"'
+    int size = s.length();
+    int j = i+1;
+
+    for (;; j++) {
+        if (j == size) {
+            string t = s.substr(i, j - i);
+            cout << "BLAD: " << t << endl;
+            return -1;
+        }
+        char c = s[j];
+        if (c == '"')
+            break;
+
+        if (c == '\\') {
+            if (j < size - 2 && (s[j + 1] == '\\' || s[j + 1] == '"' || s[j + 1] == 't'))
+                j++;
+            else {
+                string t = s.substr(i, j - i+1);
+                cout << "BLAD: " << t << endl;
+                return -1;
+            }
+        }
+    }
+
+    return j;
+}
+
+int readNum(string s, int i) {
+    int size = s.length();
+    int j = i;
+
+    if (j >= size) {
+        string t = s.substr(i, j - i);
+        cout << "BLAD: " << t << endl;
+        return -1;
+    }
+       
+    if (s[j] == '-')
+        j++;
+    if (s[j] == '0') {
+        if (size - 1 > j && s[j + 1] != '.') {
+            string t = s.substr(i, j - i + 1);
+            cout << "BLAD: " << t << endl;
+            return -1;
+        }
+    }
+    else if (s[j] < '1' || s[j] > '9') {
+        cout << "BLAD:  " << s << endl;
+        return false;
+    }
+    j++;
+    bool decimal = false;
+    for (;; j++) {
+        if (j == size)
+            return j - 1;
+
+        char c = s[j];
+
+        if ((c < '0' || c > '9') && c != '.') 
+            return j -1 ;
+        
+
+        if (c == '.') {
+            if (decimal)  // druga kropka, np. 10.23.4
+            {
+                string t = s.substr(i, j - i + 1);
+                cout << "BLAD: " << t << endl;
+                return -1;
+            }
+            else
+                decimal = true;
+            continue;
+        }
+    }
+
+    return -1;
+}
+
+int readValue(string s, int i) 
+{
+    int size = s.length();
+    int j = i;
+
+    while (j < size && isWS(s[j]))
+        j++;
+
+    char c = s[j];
+    switch (c) {
+    case 't':
+    case 'f':
+    case 'n': {
+        int x = 1;
+    }
+            break;
+    case '"':
+        j = readString(s, j);
+        break;
+    case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '-':
+        j = readNum(s, j);
+        break;
+    case '[':
+        j = readArray(s, j);
+        break;
+    case '{':
+        j = readObject(s, j);
+        break;
+    default: {
+        j = -1;
+        //string t = s.substr(i, j - i + 1);
+        //cout << "BLAD: " << t << endl;
+    }
+        
+    }
+    if (j == -1)
+        return j;
+
+    j++;
+
+    while (j < size && isWS(s[j]))
+        j++;
+
+    return j - 1; // !!!! sus
+}
+
+int readArray(string s, int i) 
+{
+    int size = s.length();
+    int j = i + 1;  // s[i] == '['
+
+    for (;; j++) {
+        if (j == size) {
+            string t = s.substr(i, j - i);
+            cout << "BLAD: " << t << endl;
+            return -1;
+        }
+
+        char c = s[j];
+
+        if (isWS(c))
+            continue;
+
+        if (c == ']')
+            return j;
+
+        j = readValue(s, j);
+        
+        if (j == -1)
+            return -1;
+
+        j++;
+
+        c = s[j];
+
+        if (c == ']')
+            return j;
+
+        
+
+        if (c != ',') {
+            string t = s.substr(i, j - i + 1);
+            cout << "BLAD: " << t << endl;
+            return -1;
+        }
+    }
+
+    return -1;
+}
+
+int readMember(string s, int i) {
+    int size = s.length();
+    int j = i;
+    while (j < size && isWS(s[j]))
+        j++;
+
+    // j - początek stringa
+    if (s[j] != '"') {
+        string t = s.substr(i, j - i + 1);
+        cout << "BLAD: " << t << endl;
+        return -1;
+    }
+    j = readString(s, ++j);
+
+    j++; 
+    while (j < size && isWS(s[j]))
+        j++;
+    
+    if (s[j] != ':') {
+        string t = s.substr(i, j - i + 1);
+        cout << "BLAD: " << t << endl;
+        return -1;
+    }
+    
+    j = readValue(s, ++j);
+    
+    return j;
+}
+
+int readObject(string s, int i)
+{
+    int size = s.length();
+    int j = i + 1;  // s[i] == '{'
+
+    for (;; j++) {
+        if (j == size) {
+            string t = s.substr(i, j - i);
+            cout << "BLAD: " << t << endl;
+            return -1;
+        }
+
+        char c = s[j];
+
+        if (isWS(c))
+            continue;
+
+        if (c == '}')
+            return j;
+
+        j = readMember(s, j);
+        
+        if (j == -1)
+            return -1;
+
+        j++;
+
+        c = s[j];
+
+        if (c == '}')
+            return j;
+
+        if (c != ',') {
+            string t = s.substr(i, j - i + 1);
+            cout << "BLAD: " << t << endl;
+            return -1;
+        }
+        
+    }
+
+    return -1;
+}
+
