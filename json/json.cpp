@@ -10,14 +10,6 @@ void menu(fstream& fs);
 void help();
 bool open(fstream& fs, string& name);
 bool validate(fstream& fs);
-bool isString(string s);
-bool isNum(string s);
-bool isValue(string s);
-bool isWS(char ch);
-bool isMember(string s);
-bool isObject(string s);
-bool isArray(string s);
-
 bool readJSON(string s);
 int readValue(string s, int i = 0);
 int readString(string s, int i = 0);
@@ -25,6 +17,7 @@ int readNum(string s, int i = 0);
 int readArray(string s, int i = 0);
 int readMember(string s, int i = 0);
 int readObject(string s, int i = 0);
+int readTrueFalseNull(string s, string t, int i = 0);
 //------------------------------------------
 
 int main()
@@ -37,20 +30,23 @@ int main()
     return 0;
 }
 
-
+/// <summary>
+/// interaktywne menu do którego wprowadzamy komendy
+/// </summary>
+/// <param name="fs"> file stream z plikiem json</param>
 void menu(fstream& fs)
 {
     char choice;
     string command;
 
-    do {
+    do {  // nieskończona pętla
         system("cls");
         cout << ">> ";
         getline(cin >> ws, command); // używamy getline, aby whitespace nie przerywało odczytu 
-        choice = command[0];
+        choice = command[0];  // pierwsza litera to polecenie
         int l = command.length();
         if (l > 2 && command[1] == ' ') 
-            command = command.substr(2, command.length()-2);
+            command = command.substr(2, command.length()-2);  // wyciągamy string po polecenie z nazwą pliku albo ścieżką
         switch (choice) {
         case 'h': {
             help();
@@ -92,7 +88,12 @@ void help()
     system("pause");
 }
 
-
+/// <summary>
+/// otwiera plik 
+/// </summary>
+/// <param name="fs"> file stream przechowujący plik </param>
+/// <param name="name"> nazwa pliku, ścieżka domyślna w katalogu z projektem </param>
+/// <returns> true jeżeli prawidłowo otworzono plik </returns>
 bool open(fstream& fs, string& name)
 {
     if (fs.is_open()) fs.close();                  //gdy był wcześniej otwarty plik, zamyka go
@@ -100,12 +101,17 @@ bool open(fstream& fs, string& name)
         return false;
     }
     fs.open(name, ios::in);        //otwarcie pliku
-    if (!fs) {                                     //kontrola otwarcia
+    if (!fs) {                     //kontrola otwarcia
         return false;
     }
     return true;
 }
 
+/// <summary>
+/// sprawdza, czy plik jest poprawnym plikiem json
+/// </summary>
+/// <param name="fs"> fstream </param>
+/// <returns> true, jeżeli plik jest poprawny </returns>
 bool validate(fstream& fs) {
     // wczytaj cały plik do zmiennej json
     fs.seekg(0, ios::end);
@@ -117,190 +123,20 @@ bool validate(fstream& fs) {
     return readJSON(json);
 }
 
-/*
-bool isString(string s) {
-    int size = s.length();
-    if (size < 2) {
-        cout << "BLAD:  " << s << endl;
-        return false;
-    }
-    if (s[0] != '"') {
-        cout << "BLAD:  " << s << endl;
-        return false;
-    }
-    for (int i = 1; i < size - 1; i++) {
-        char ch = s[i];
-        if (ch == '\\') {
-            if (i < size - 2 && (s[i + 1] == '\\' || s[i + 1] == '"' || s[i + 1] == 't'))
-                i++;
-            else {
-                cout << "BLAD:  " << s << endl;
-                return false;
-            }
-        }
-    }
-    if (s[size-1] != '"') {
-        cout << "BLAD:  " << s << endl;
-        return false;
-    }
-
-    return true;
-}
-
-bool isNum(string s) {
-    int size = s.length();
-    if (size < 1)
-        return false;
-    int i = 0;
-    if (s[i] == '-')
-        i++;
-    if (s[i] == '0') {
-        if (size - 1 > i && s[i + 1] != '.') {
-            cout << "BLAD:  " << s << endl;
-            return false;
-        }
-    }
-    else if (s[i] < '1' || s[i] > '9') {
-        cout << "BLAD:  " << s << endl;
-        return false;
-    }
-    i++;
-    bool decimal = false;
-    for (; i < size; i++) {
-        if (s[i] == '.') {
-            if (decimal)  // druga kropka, np. 10.23.4
-            {
-                cout << "BLAD:  " << s << endl;
-                return false;
-            }
-            else
-                decimal = true;
-            continue;
-        }
-        if (s[i] < '0' || s[i] > '9') {
-            cout << "BLAD:  " << s << endl;
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool isMember(string s) {
-    int size = s.length();
-    int i = 0;
-    while (i < size && isWS(s[i]))
-        i++;
-    // i - początek stringa
-    int j = i;
-    while (j < size && isWS(s[i]))
-        i++;
-
-
-    while (j > 0 && isWS(s[j - 1]))
-        j--;
-    // nasz string jest pomiędzy indeksami i i j
-    if (j - i <= 0)
-        return false;
-    string t = s.substr(i, j - i);
-
-    while (i < size) {
-        i f
-    }
-
-    return true;
-}
-
-bool isObject(string s) {
-    int size = s.length();
-    if (size < 2) {
-        //cout << "BLAD:  " << s << endl;
-        return false;
-    }
-    if (s[0] != '{') {
-        //cout << "BLAD:  " << s << endl;
-        return false;
-    }
-
-    int k = 1, ws = 0;
-    for (int i = 1; i < size - 1; i++) {
-        if (s[i] == ',') {
-            string t = s.substr(k, i - k);
-            cout << t;
-            if (!isMember(t))
-                return false;
-            k = i + 1;
-        }
-        else if (isWS(s[i]))
-            ws++;
-    }
-    string t = s.substr(k, size - 1 - k);
-    if (!isMember(t) && ws != size - 2)
-        return false;
-
-    if (s[size - 1] != '}') {
-        //cout << "BLAD:  " << s << endl;
-        return false;
-    }
-
-    return true;
-}
-
-bool isArray(string s) {
-    int size = s.length();
-    if (size < 2) {
-        //cout << "BLAD:  " << s << endl;
-        return false;
-    }
-    if (s[0] != '[') {
-        //cout << "BLAD:  " << s << endl;
-        return false;
-    }
-
-    int k = 1, ws = 0;
-    for (int i = 1; i < size - 1; i++) {
-        if (s[i] == ',') {
-            string t = s.substr(k, i - k);
-            cout << t;
-            if (!isValue(t))
-                return false;
-            k = i + 1;
-        }
-        else if (isWS(s[i]))
-            ws++;
-    }
-    string t = s.substr(k, size - 1 - k);
-    if (!isValue(t) && ws != size - 2)
-        return false;
-
-    if (s[size-1] != ']') {
-        //cout << "BLAD:  " << s << endl;
-        return false;
-    }
-
-    return true;
-}
-
-bool isValue(string s) {
-    int size = s.length();
-    int i = 0, j = size;
-    while (i < size && isWS(s[i]))
-        i++;
-    while (j > 0 && isWS(s[j-1]))
-        j--;
-    // nasz string jest pomiędzy indeksami i i j
-    if (j - i <= 0)
-        return false;
-    string t = s.substr(i, j-i);
-    return isString(t) || isNum(t) || t == "true" || t == "false" || t == "null" || isArray(t) || isObject(t);
-}
-*/
-
-
+/// <summary>
+/// sprawdza czy ch jest znakiem WS
+/// </summary>
+/// <param name="ch"> znak sprawdzany </param>
+/// <returns> true, jeżeli jest </returns>
 bool isWS(char ch) {
     return ch == '\x20' || ch == '\x09' || ch == '\x0A' || ch == '\x0D';
 }
 
+/// <summary>
+/// czyta cały plik json
+/// </summary>
+/// <param name="s"> plik json w postaci łańcucha znaków </param>
+/// <returns> true, jeżeli plik jest prawidłowym plikiem json </returns>
 bool readJSON(string s) {
     int size = s.length();
     int j = size - 1;
@@ -308,26 +144,32 @@ bool readJSON(string s) {
     return i == j;
 }
 
-int readString(string s, int i) {
-    
+/// <summary>
+/// czyta string w pliku json
+/// </summary>
+/// <param name="s"> plik json w postaci łańcucha znaków </param>
+/// <param name="i"> indeks, od którego czytanie się zaczyna </param>
+/// <returns> indeks, na którym string się kończy </returns>
+int readString(string s, int i) 
+{
     // s[i] == '"'
     int size = s.length();
     int j = i+1;
 
-    for (;; j++) {
-        if (j == size) {
+    for (;; j++) { // nieskończona pętla
+        if (j == size) { // jeżeli indeks wyjechał poza plik; w innych funkcjach analogicznie
             string t = s.substr(i, j - i);
             cout << "BLAD: " << t << endl;
             return -1;
         }
         char c = s[j];
-        if (c == '"')
+        if (c == '"')  // koniec stringa
             break;
 
-        if (c == '\\') {
+        if (c == '\\') {  // przypadek wystąpienia znaku '\'
             if (j < size - 2 && (s[j + 1] == '\\' || s[j + 1] == '"' || s[j + 1] == 't'))
                 j++;
-            else {
+            else {  // jeżeli po '\' jest coś innego
                 string t = s.substr(i, j - i+1);
                 cout << "BLAD: " << t << endl;
                 return -1;
@@ -338,11 +180,17 @@ int readString(string s, int i) {
     return j;
 }
 
+/// <summary>
+/// czyta liczbę w pliku json
+/// </summary>
+/// <param name="s"> plik json w postaci łańcucha znaków </param>
+/// <param name="i"> indeks, od którego czytanie się zaczyna </param>
+/// <returns> indeks, na którym liczba się kończy </returns>
 int readNum(string s, int i) {
     int size = s.length();
     int j = i;
 
-    if (j >= size) {
+    if (j >= size) {  
         string t = s.substr(i, j - i);
         cout << "BLAD: " << t << endl;
         return -1;
@@ -350,27 +198,27 @@ int readNum(string s, int i) {
        
     if (s[j] == '-')
         j++;
-    if (s[j] == '0') {
+    if (s[j] == '0') {  // po zerze nie mogą być liczby, np. 02134 nie jest poprawną liczbą
         if (size - 1 > j && s[j + 1] != '.') {
             string t = s.substr(i, j - i + 1);
             cout << "BLAD: " << t << endl;
             return -1;
         }
     }
-    else if (s[j] < '1' || s[j] > '9') {
+    else if (s[j] < '1' || s[j] > '9') {  // jeżeli znak nie jest cyfrą
         cout << "BLAD:  " << s << endl;
         return false;
     }
     j++;
-    bool decimal = false;
+    bool decimal = false;  // flaga, która mówi czy już wystąpiła kropka dziesiętna w liczbie
     for (;; j++) {
         if (j == size)
             return j - 1;
 
         char c = s[j];
 
-        if ((c < '0' || c > '9') && c != '.') 
-            return j -1 ;
+        if ((c < '0' || c > '9') && c != '.')  //gdy skończy się liczba
+            return j - 1;
         
 
         if (c == '.') {
@@ -381,7 +229,7 @@ int readNum(string s, int i) {
                 return -1;
             }
             else
-                decimal = true;
+                decimal = true;  // ustawia flagę
             continue;
         }
     }
@@ -389,22 +237,31 @@ int readNum(string s, int i) {
     return -1;
 }
 
+/// <summary>
+/// czyta wartość
+/// </summary>
+/// <param name="s"> plik json w postaci łańcucha znaków </param>
+/// <param name="i"> indeks, od którego czytanie się zaczyna </param>
+/// <returns> indeks, na którym wartość się kończy (razem z WS) </returns>
 int readValue(string s, int i) 
 {
     int size = s.length();
     int j = i;
 
-    while (j < size && isWS(s[j]))
+    while (j < size && isWS(s[j]))  // omijanie WS
         j++;
 
     char c = s[j];
     switch (c) {
     case 't':
+        j = readTrueFalseNull(s, "true", j);
+        break;
     case 'f':
-    case 'n': {
-        int x = 1;
-    }
-            break;
+        j = readTrueFalseNull(s, "false", j);
+        break;
+    case 'n': 
+        j = readTrueFalseNull(s, "null", j);
+        break;
     case '"':
         j = readString(s, j);
         break;
@@ -417,10 +274,10 @@ int readValue(string s, int i)
     case '{':
         j = readObject(s, j);
         break;
-    default: {
+    default: {  // jeżeli jakikolwiek inny znak to zły plik 
         j = -1;
-        //string t = s.substr(i, j - i + 1);
-        //cout << "BLAD: " << t << endl;
+        string t = s.substr(i, j - i + 1);
+        cout << "BLAD: " << t << endl;
     }
         
     }
@@ -429,12 +286,18 @@ int readValue(string s, int i)
 
     j++;
 
-    while (j < size && isWS(s[j]))
+    while (j < size && isWS(s[j]))  // omijanie WS
         j++;
 
-    return j - 1; // !!!! sus
+    return j - 1; 
 }
 
+/// <summary>
+/// czyta tablicę
+/// </summary>
+/// <param name="s"> plik json w postaci łańcucha znaków </param>
+/// <param name="i"> indeks, od którego czytanie się zaczyna </param>
+/// <returns> indeks, na którym tablica się kończy </returns>
 int readArray(string s, int i) 
 {
     int size = s.length();
@@ -449,27 +312,25 @@ int readArray(string s, int i)
 
         char c = s[j];
 
-        if (isWS(c))
+        if (isWS(c))  // dodane dla przypadku [ WS ]
             continue;
 
-        if (c == ']')
+        if (c == ']')  // dodane dla przypadku [ WS ]
             return j;
 
-        j = readValue(s, j);
+        j = readValue(s, j);  // czytamy value , bo array to [ value, value ... ] 
         
-        if (j == -1)
+        if (j == -1)  // jeżeli błędne value
             return -1;
 
-        j++;
+        c = s[++j];  // następny znak
 
-        c = s[j];
-
-        if (c == ']')
+        if (c == ']')  // koniec tablicy
             return j;
 
         
 
-        if (c != ',') {
+        if (c != ',') {  // jeżeli to nie koniec, to następny znak musi być przecinkiem
             string t = s.substr(i, j - i + 1);
             cout << "BLAD: " << t << endl;
             return -1;
@@ -479,10 +340,17 @@ int readArray(string s, int i)
     return -1;
 }
 
+/// <summary>
+/// czyta member
+/// </summary>
+/// <param name="s"> plik json w postaci łańcucha znaków </param>
+/// <param name="i"> indeks, od którego czytanie się zaczyna </param>
+/// <returns> indeks, na którym member się kończy </returns>
 int readMember(string s, int i) {
+    //  
     int size = s.length();
     int j = i;
-    while (j < size && isWS(s[j]))
+    while (j < size && isWS(s[j]))  // omnięcie WS
         j++;
 
     // j - początek stringa
@@ -491,23 +359,31 @@ int readMember(string s, int i) {
         cout << "BLAD: " << t << endl;
         return -1;
     }
-    j = readString(s, ++j);
+
+    j = readString(s, ++j);  // odczyt stringa
 
     j++; 
-    while (j < size && isWS(s[j]))
+    while (j < size && isWS(s[j]))  // omnięcie WS
         j++;
     
-    if (s[j] != ':') {
+    if (s[j] != ':') {  // w tym miejscu musi być ':'
         string t = s.substr(i, j - i + 1);
         cout << "BLAD: " << t << endl;
         return -1;
     }
     
-    j = readValue(s, ++j);
+    j = readValue(s, ++j);  // następnie musi być value
     
     return j;
 }
 
+/// <summary>
+/// czyta objekt 
+/// logika identyczna do readArray!
+/// </summary>
+/// <param name="s"></param>
+/// <param name="i"></param>
+/// <returns> indeks, na którym objekt się kończy </returns>
 int readObject(string s, int i)
 {
     int size = s.length();
@@ -550,4 +426,35 @@ int readObject(string s, int i)
 
     return -1;
 }
+
+/// <summary>
+/// czyta wartości true, false, null
+/// </summary>
+/// <param name="s"> plik json jako string</param>
+/// <param name="t"> 'true', 'false', 'null' </param>
+/// <param name="i"> indeks z pozycją początku wartości </param>
+/// <returns> indeks z końcem wartości </returns>
+int readTrueFalseNull(string s, string t, int i)
+{
+    int size = s.length();
+    int l = t.length();
+
+    for (int j = 0; j < l; j++) {  // czytamy tyle znaków, ile znaków ma t
+        if (i+j == size) {  // jeżeli jesteśmy poza plikiem json
+            string w = s.substr(i, j - i);
+            cout << "BLAD: " << w << endl;
+            return -1;
+        }
+
+        char c = s[i + j];
+        if (c != t[j]) {  // jeżeli znak z s nie jest identyczny z odpowiadającym mu znakiem z t
+            string w = s.substr(i, j - i + 1);
+            cout << "BLAD: " << w << endl;
+            return -1;
+        }
+    }
+
+    return i + l - 1;
+}
+
 

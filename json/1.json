@@ -4,5 +4,8 @@
 {"a" : "b", "c" : "d"}, 
 "Ala ma kota", 
 "Kot ma ale?", 
-"\\\"b\ta\\"
+"\\\"b\ta\\", 
+true, 
+false, 
+null 
 ]
